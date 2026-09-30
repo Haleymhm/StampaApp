@@ -23,6 +23,10 @@ El software prioriza la **fidelidad gráfica**, la **autonomía administrativa**
 * **Control de Calidad Pre-producción:** La aplicación debe calcular los **DPI efectivos** del diseño según el tamaño físico configurado y emitir advertencias si la resolución cae por debajo de 150 DPI.
 * Todos los archivos generados para imprenta deben procesarse con canal alfa transparente (PNG de alta densidad) o formato vectorial adecuado para producción/ponchado.
 
+### 1.4. Arquitectura API-First y Validación Estricta con Zod
+* **Enfoque API-First:** Todas las operaciones y reglas del backend deben residir detrás de contratos de API RESTful estructurados (`/api/...`), permitiendo que el Storefront del cliente, el Backoffice administrativo y futuros clientes consuman los mismos endpoints de manera agnóstica y predecible.
+* **Validación Universal con Zod:** La validación de tipos y esquemas de datos en tiempo de ejecución debe ser obligatoria mediante **Zod**. Ningún payload (solicitud de pedido, mutaciones de catálogo, coordenadas de áreas o JSON del canvas) debe alcanzar la capa de persistencia o el motor de renderizado sin superar la validación de su respectivo esquema tipado.
+
 ---
 
 ## 2. Reglas Específicas por Técnica de Personalización
@@ -59,14 +63,18 @@ Las gorras deben categorizarse según su construcción para limitar visual y té
 
 ## 4. Roles y Matriz de Control de Acceso (RBAC)
 
-### 4.1. Perfil Cliente (Unauthenticated / Public User)
-* **Alcance:** Acceso al catálogo de productos, personalizador interactivo (Canvas), selección de técnica permitida por producto, galería pública de diseños, carga de archivos propios y generación de solicitudes de pedido.
-* **Restricciones:** No requiere autenticación previa. No puede acceder a datos de otros pedidos ni a los archivos fuente en alta resolución de la galería.
+### 4.1. Perfil Cliente Invitado (Guest / Unauthenticated)
+* **Alcance:** Acceso al catálogo de productos, personalizador interactivo (Canvas), selección de técnica permitida por producto, galería pública de diseños, carga de archivos propios y generación de solicitudes de pedido directas.
+* **Restricciones:** No requiere registro. No puede almacenar borradores persistentes en la nube para continuar después sin registrarse.
 
-### 4.2. Perfil Administrador (Authenticated Staff)
-* **Alcance:** Control total sobre el catálogo (CRUD de productos, colores, tallas/capacidades), configuración de mockups, técnica permitida por producto y delimitación de zonas imprimibles (incluyendo marcas de costuras o superficies curvas).
-* Gestión de la Galería Pública (carga y categorización de cliparts/vectores).
-* Gestión de pedidos, cambio de estados operacionales y descarga del **Paquete de Producción** (imágenes a 300 DPI + Hoja de ruta / Worksheet de producción).
+### 4.2. Perfil Cliente Registrado (Role: `customer`)
+* **Alcance:** Todo lo del cliente invitado, sumado a la capacidad de **guardar borradores de sus diseños** (`SavedDesign`), editarlos, eliminarlos y continuar su personalización en sesiones futuras. Historial y seguimiento de sus solicitudes de pedido.
+
+### 4.3. Perfil Operador de Taller (Role: `operator`)
+* **Alcance:** Tablero Kanban de pedidos, cambio de estados operacionales (`PENDING_REVIEW` $\rightarrow$ `IN_PRODUCTION` $\rightarrow$ `READY_FOR_DELIVERY`), ejecución del motor de renderizado y descarga del **Paquete de Producción** (PNG 300 DPI + Hoja de ruta / Worksheet).
+
+### 4.4. Perfil Administrador (Role: `admin`)
+* **Alcance:** Control total sobre el sistema: gestión de usuarios y roles, catálogo (CRUD de productos, colores, tallas/capacidades), configuración de mockups, técnica permitida por producto, calibración de zonas imprimibles (`PrintableAreas`) y gestión de la Galería Pública.
 
 ---
 
@@ -102,3 +110,8 @@ Las gorras deben categorizarse según su construcción para limitar visual y té
     }
   ]
 }
+```
+
+### 5.2. Validación de Contratos con Zod
+* Toda entidad de entrada y salida, incluyendo el `StampaApp Design Schema`, debe tener un esquema Zod correspondiente (`z.object({...})`) en `/src/lib/validations/`.
+* Los Route Handlers (`/api/...`) deben validar el `body`, `query` y `params` usando `.safeParse()` o equivalentes de Zod, retornando errores 400 formateados ante cualquier inconsistencia antes de ejecutar lógica de base de datos o renderizado.

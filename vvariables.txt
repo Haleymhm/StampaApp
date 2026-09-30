@@ -1,0 +1,8 @@
+DATABASE_URL=postgresql://neondb_owner:npg_ubyNjmng5R4s@ep-fragrant-salad-b89wklee-pooler.c-14.us-east-1.aws.neon.tech/neondb?channel_binding=require&sslmode=require
+
+# Parameters for constructing your own connection string
+PGHOST=ep-fragrant-salad-b89wklee-pooler.c-14.us-east-1.aws.neon.tech
+PGHOST_UNPOOLED=ep-fragrant-salad-b89wklee.c-14.us-east-1.aws.neon.tech
+PGUSER=neondb_owner
+PGDATABASE=neondb
+PGPASSWORD=npg_ubyNjmng5R4s
